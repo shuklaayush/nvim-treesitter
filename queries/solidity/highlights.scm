@@ -1,14 +1,15 @@
-(comment) @comment
-(
- (comment) @attribute
- (#match? @attribute "^/// .*")
-) ;; Handles natspec comments
+; identifiers
+; -----------
+(identifier) @variable
+(yul_identifier) @variable
 
 ; Pragma
 (pragma_directive) @tag
-
+(solidity_version_comparison_operator _ @tag)
 
 ; Literals
+; --------
+
 [
  (string)
  (hex_string_literal)
@@ -25,28 +26,36 @@
  (false)
 ] @constant.builtin
 
+(comment) @comment
 
-; Type
-(type_name (identifier) @type)
-(type_name "mapping" @type)
+; Definitions and references
+; -----------
+
+(type_name) @type
 (primitive_type) @type
-(contract_declaration name: (identifier) @type)
-(struct_declaration struct_name: (identifier) @type)
-(struct_member name: (identifier) @field)
-(enum_declaration enum_type_name: (identifier) @type)
-; Color payable in payable address conversion as type and not as keyword
+(user_defined_type (identifier) @type)
+
 (payable_conversion_expression "payable" @type)
-(emit_statement . (identifier) @type)
-; Handles ContractA, ContractB in function foo() override(ContractA, contractB) {} 
-(override_specifier (identifier) @type)
 ; Ensures that delimiters in mapping( ... => .. ) are not colored like types
 (type_name "(" @punctuation.bracket "=>" @punctuation.delimiter ")" @punctuation.bracket)
 
-
-; Functions and parameters
+; Definitions
+(struct_declaration 
+  name: (identifier) @type)
+(enum_declaration 
+  name: (identifier) @type)
+(contract_declaration
+  name: (identifier) @type) 
+(library_declaration
+  name: (identifier) @type) 
+(interface_declaration
+  name: (identifier) @type)
+(event_definition 
+  name: (identifier) @type) 
 
 (function_definition
-  function_name:  (identifier) @function)
+  name:  (identifier) @function)
+
 (modifier_definition
   name:  (identifier) @function)
 (yul_evm_builtin) @function.builtin
@@ -56,37 +65,37 @@
 (fallback_receive_definition "receive" @constructor)
 (fallback_receive_definition "fallback" @constructor)
 
+(struct_member name: (identifier) @property)
+(enum_value) @constant
+
+; Invocations 
+(emit_statement . (identifier) @type)
 (modifier_invocation (identifier) @function)
 
-; Handles expressions like structVariable.g();
-(call_expression . (member_expression (property_identifier) @method))
-
-; Handles expressions like g();
+(call_expression . (member_expression property: (identifier) @function.method))
 (call_expression . (identifier) @function)
-(function_definition
- function_name: (identifier) @function)
-
-; Handles the field in struct literals like MyStruct({MyField: MyVar * 2})
-(call_expression (identifier) @field . ":")
 
 ; Function parameters
+(call_struct_argument name: (identifier) @field)
 (event_paramater name: (identifier) @parameter)
-(parameter name: (identifier) @parameter)
+(parameter name: (identifier) @variable.parameter)
 
 ; Yul functions
 (yul_function_call function: (yul_identifier) @function)
-
-; Yul function parameters
 (yul_function_definition . (yul_identifier) @function (yul_identifier) @parameter)
 
+
+; Structs and members
+(member_expression property: (identifier) @property)
+(struct_expression type: ((identifier) @type .))
+(struct_field_assignment name: (identifier) @property)
+
+
+; Tokens
+; -------
+
+; Keywords
 (meta_type_expression "type" @keyword)
-
-(member_expression (property_identifier) @field)
-(property_identifier) @field
-(struct_expression ((identifier) @field . ":"))
-(enum_value) @constant
-
-
 ; Keywords
 [
  "pragma"
@@ -112,7 +121,7 @@
  "storage"
  "calldata"
  "var"
- (constant)
+ "constant"
  (virtual)
  (override_specifier)
  (yul_leave)
@@ -206,7 +215,3 @@
   "delete"
   "new"
 ] @keyword.operator
-
-(identifier) @variable
-(yul_identifier) @variable
-
